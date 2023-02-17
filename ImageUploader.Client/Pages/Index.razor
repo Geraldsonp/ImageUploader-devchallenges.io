@@ -1,0 +1,139 @@
+﻿@page "/"
+
+@using ImageUploader.Client.Services
+@using ImageUploader.Shared.Models.Commands.Images
+@inject IJSRuntime JSRuntime
+@inject IImageService _ImageService
+
+<div class="main-container">
+    <div class="container">
+        <div class="card">
+            @if (ImageLink is not null)
+            {
+                <ImageWindowComponent ImageSrc="@ImageLink"></ImageWindowComponent>
+            }
+            else if (isUploading)
+            {
+                <UploadingComponent></UploadingComponent>
+            }
+            else
+            {
+                <div class="mb-8">
+                    <h1 class="card-title">Upload your image</h1>
+                    <p class="text-center text-gray-700 text-sm">File should be Jpge or Png</p>
+                </div>
+                <div class="drop-Zone-container">
+                    <div class="drop-zone @dragCssStyle" @ref="DropZoneInstance">
+                        <InputFile @ref="_InputFile" id="FileImput" class="fileInputstyle" OnChange="OnChange" @ondragenter="OndragEnter" @ondragleave="OnDragLeave"></InputFile>
+                        <div class="drop-zone-placeholder ">
+                            <img class="mb-8" src="image.svg" alt="Upload Image">
+                            <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">Drag & Drop your image here</p>
+                        </div>
+                    </div>
+                    <p class="my-5 text-gray-400">Or</p>
+                    <label class="upload-btn" for="FileImput">Choose a file</label>
+                </div>
+            }
+        </div>
+        @if (Error is not null)
+        {
+            <span class="text-red-600 text-xl">@Error</span>
+        }
+    </div>
+</div>
+
+@code {
+    public ImageUploadRequest UploadRequest;
+
+    string dragCssStyle = "";
+
+    string? ImageLink;
+
+    bool isUploading = false;
+
+    public string? Error { get; set; }
+
+    public ElementReference DropZoneInstance { get; set; }
+
+    public InputFile _InputFile;
+
+    IJSObjectReference _dropZoneInstance;
+
+    IJSObjectReference _module;
+
+
+    private void OndragEnter()
+    {
+        dragCssStyle = "hover";
+    }
+
+    private void OnDragLeave()
+    {
+        dragCssStyle = "";
+    }
+
+    async Task OnChange(InputFileChangeEventArgs e)
+    {
+        dragCssStyle = "";
+        ImageLink = null;
+        isUploading = true;
+
+        using var stream = e.File.OpenReadStream(25000000);
+
+        await Upload(stream, e.File.Name);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+    // Load the JS file
+            _module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Js/dropZone.js");
+
+    // Initialize the drop zone
+            _dropZoneInstance = await _module.InvokeAsync<IJSObjectReference>("InitializeFileDropZone", DropZoneInstance, _InputFile.Element);
+        }
+    }
+
+    async Task Upload(Stream stream, string fileName)
+    {
+        UploadRequest = new();
+
+        using var ms = new MemoryStream();
+
+        await stream.CopyToAsync(ms);
+
+        UploadRequest.ImgName = fileName;
+
+        UploadRequest.base64Img = Convert.ToBase64String(ms.ToArray());
+
+        var result = await _ImageService.UploadAsync(UploadRequest);
+
+        isUploading = false;
+
+        if (result.IsSucess)
+        {
+            ImageLink = result.ImgUrl;
+        }
+        else
+        {
+            Error = result.Error;
+        }
+    }
+
+    // Unregister the drop zone events
+    public async ValueTask DisposeAsync()
+    {
+        if (_dropZoneInstance != null)
+        {
+            await _dropZoneInstance.InvokeVoidAsync("dispose");
+            await _dropZoneInstance.DisposeAsync();
+        }
+
+        if (_module != null)
+        {
+            await _module.DisposeAsync();
+        }
+    }
+
+}
