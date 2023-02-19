@@ -8,11 +8,11 @@
 <div class="main-container">
     <div class="container">
         <div class="card">
-            @if (ImageLink is not null)
+            @if (_imageLink is not null)
             {
-                <ImageWindowComponent ImageSrc="@ImageLink"></ImageWindowComponent>
+                <ImageWindowComponent ImageSrc="@_imageLink"></ImageWindowComponent>
             }
-            else if (isUploading)
+            else if (_isUploading)
             {
                 <UploadingComponent></UploadingComponent>
             }
@@ -23,8 +23,8 @@
                     <p class="text-center text-gray-700 text-sm">File should be Jpge or Png</p>
                 </div>
                 <div class="drop-Zone-container">
-                    <div class="drop-zone @dragCssStyle" @ref="DropZoneInstance">
-                        <InputFile @ref="_InputFile" id="FileImput" class="fileInputstyle" OnChange="OnChange" @ondragenter="OndragEnter" @ondragleave="OnDragLeave"></InputFile>
+                    <div class="drop-zone @_dragCssStyle" @ref="DropZoneInstance">
+                        <InputFile @ref="_inputFileReference" id="FileImput" class="fileInputstyle" OnChange="OnChange" @ondragenter="OndragEnter" @ondragleave="OnDragLeave"></InputFile>
                         <div class="drop-zone-placeholder ">
                             <img class="mb-8" src="image.svg" alt="Upload Image">
                             <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">Drag & Drop your image here</p>
@@ -43,40 +43,39 @@
 </div>
 
 @code {
-    public ImageUploadRequest UploadRequest;
 
-    string dragCssStyle = "";
+    private string _dragCssStyle = "";
 
-    string? ImageLink;
+    private string? _imageLink;
 
-    bool isUploading = false;
+    private bool _isUploading = false;
 
-    public string? Error { get; set; }
+    private string? Error { get; set; }
 
-    public ElementReference DropZoneInstance { get; set; }
+    private ElementReference DropZoneInstance { get; set; }
 
-    public InputFile _InputFile;
+    private InputFile? _inputFileReference;
 
-    IJSObjectReference _dropZoneInstance;
+    IJSObjectReference? _dropZoneInstance;
 
-    IJSObjectReference _module;
+    IJSObjectReference? _dragAndDropModuleReference;
 
 
     private void OndragEnter()
     {
-        dragCssStyle = "hover";
+        _dragCssStyle = "hover";
     }
 
     private void OnDragLeave()
     {
-        dragCssStyle = "";
+        _dragCssStyle = "";
     }
 
     async Task OnChange(InputFileChangeEventArgs e)
     {
-        dragCssStyle = "";
-        ImageLink = null;
-        isUploading = true;
+        _dragCssStyle = "";
+        _imageLink = null;
+        _isUploading = true;
 
         await Upload(e.File);
     }
@@ -86,22 +85,30 @@
         if (firstRender)
         {
     // Load the JS file
-            _module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Js/dropZone.js");
+            _dragAndDropModuleReference = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Js/dropZone.js");
 
     // Initialize the drop zone
-            _dropZoneInstance = await _module.InvokeAsync<IJSObjectReference>("InitializeFileDropZone", DropZoneInstance, _InputFile.Element);
+            _dropZoneInstance = await _dragAndDropModuleReference.InvokeAsync<IJSObjectReference>("InitializeFileDropZone", DropZoneInstance, _inputFileReference.Element);
         }
     }
 
-    async Task Upload(IBrowserFile file)
+    private async Task Upload(IBrowserFile file)
     {
-        var result = await _ImageService.UploadAsync(file);
+        var fileStream = new StreamContent(file.OpenReadStream(98873600));
+        var fileBytes = await fileStream.ReadAsByteArrayAsync();
+        var request = new ImageUploadRequest()
+        {
+            ImageBytes = fileBytes,
+            ImgName = file.Name
+        };
 
-        isUploading = false;
+        var result = await _ImageService.UploadToBlobAsync(request);
+
+        _isUploading = false;
 
         if (result.IsSucess)
         {
-            ImageLink = result.ImgUrl;
+            _imageLink = result.ImgUrl;
         }
         else
         {
@@ -118,9 +125,9 @@
             await _dropZoneInstance.DisposeAsync();
         }
 
-        if (_module != null)
+        if (_dragAndDropModuleReference != null)
         {
-            await _module.DisposeAsync();
+            await _dragAndDropModuleReference.DisposeAsync();
         }
     }
 

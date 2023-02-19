@@ -15,35 +15,28 @@ public class ImageService : IImageService
         _httpClient = httpClient;
     }
 
-    public async Task<UploadResult> UploadAsync(ImageUploadRequest request)
+    public async Task<UploadResult> UploadToBlobAsync(ImageUploadRequest request)
     {
         var response = await _httpClient.PostAsJsonAsync(ApiAddress, request);
 
         var result = new UploadResult();
 
-            result.IsSucess = response.IsSuccessStatusCode;
+        result.IsSucess = response.IsSuccessStatusCode;
 
-            if (response.IsSuccessStatusCode)
-            {
-                result.ImgUrl = await response.Content.ReadAsStringAsync();
-            }
-            else
-            {
-                result.Error = await response.Content.ReadAsStringAsync();
-            }
+        if (response.IsSuccessStatusCode)
+        {
+            result.ImgUrl = await response.Content.ReadAsStringAsync();
+        }
+        else
+        {
+            result.Error = await response.Content.ReadAsStringAsync();
+        }
 
-            return result;
+        return result;
     }
 
-    public async Task<UploadResult> UploadAsync(IBrowserFile file)
+    public async Task<UploadResult> UploadAsync(ImageUploadRequest request)
     {
-        var fileStream = new  StreamContent(file.OpenReadStream(98873600));
-        var fileBytes = await fileStream.ReadAsByteArrayAsync();
-        var request = new ImageUploadRequest()
-        {
-            ImageBytes = fileBytes,
-            ImgName = file.Name
-        };
 
         var response = await _httpClient.PostAsJsonAsync(ApiAddress, request);
 
