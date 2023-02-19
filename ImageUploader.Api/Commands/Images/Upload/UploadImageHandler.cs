@@ -14,9 +14,7 @@ public class UploadImageHandler : IUploadImageHandler
 
     public async Task<string> Execute(ImageUploadRequest uploadRequest)
     {
-        var stream = Convert.FromBase64String(uploadRequest.base64Img);
-
-        using var memoryStream = new MemoryStream(stream);
+        using var memoryStream = new MemoryStream(uploadRequest.ImageBytes);
 
         var result = await _fileManager.Upload(memoryStream, uploadRequest.ImgName);
 

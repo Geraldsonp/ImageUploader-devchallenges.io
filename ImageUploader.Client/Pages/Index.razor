@@ -78,9 +78,7 @@
         ImageLink = null;
         isUploading = true;
 
-        using var stream = e.File.OpenReadStream(25000000);
-
-        await Upload(stream, e.File.Name);
+        await Upload(e.File);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -95,19 +93,9 @@
         }
     }
 
-    async Task Upload(Stream stream, string fileName)
+    async Task Upload(IBrowserFile file)
     {
-        UploadRequest = new();
-
-        using var ms = new MemoryStream();
-
-        await stream.CopyToAsync(ms);
-
-        UploadRequest.ImgName = fileName;
-
-        UploadRequest.base64Img = Convert.ToBase64String(ms.ToArray());
-
-        var result = await _ImageService.UploadAsync(UploadRequest);
+        var result = await _ImageService.UploadAsync(file);
 
         isUploading = false;
 
