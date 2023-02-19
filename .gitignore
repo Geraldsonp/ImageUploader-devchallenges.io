@@ -1492,3 +1492,9 @@ ImageUploader.Shared/obj/project.assets.json
 ImageUploader.Shared/obj/project.nuget.cache
 ImageUploader.Shared/obj/project.packagespec.json
 ImageUploader.Shared/obj/rider.project.restore.info
+.vscode/launch.json
+.vscode/tasks.json
+.idea/.idea.ImageUploader/.idea/encodings.xml
+.idea/.idea.ImageUploader/.idea/indexLayout.xml
+.idea/.idea.ImageUploader/.idea/vcs.xml
+.idea/config/applicationhost.config
