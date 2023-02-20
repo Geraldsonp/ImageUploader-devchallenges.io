@@ -7,7 +7,7 @@ namespace ImageUploader.Client.Services;
 
 public class ImageService : IImageService
 {
-    public string ApiAddress { get; set; } = "/api/FileUpload";
+    public string ApiAddress { get; set; } = "/api/Upload";
     private readonly HttpClient _httpClient;
 
     public ImageService(HttpClient httpClient)

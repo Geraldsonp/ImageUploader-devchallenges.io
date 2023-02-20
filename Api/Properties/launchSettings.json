@@ -2,7 +2,7 @@
   "profiles": {
     "FileUploadFunction": {
       "commandName": "Project",
-      "commandLineArgs": "--port 7127",
+      "commandLineArgs": "--port 7092",
       "launchBrowser": false
     }
   }

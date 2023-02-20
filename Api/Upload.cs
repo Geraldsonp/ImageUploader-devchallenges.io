@@ -1,31 +1,25 @@
-﻿using System;
-using System.IO;
-using System.Reflection.Metadata;
-using System.Threading.Tasks;
-using System.Web.Http;
+﻿using System.Net;
 using Azure.Storage.Blobs;
 using ImageUploader.Shared.Models.Commands.Images;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Azure.WebJobs.Host;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace FileUploadFunction;
 
-public static class FileUpload
+public static class Upload
 {
-    [FunctionName("FileUpload")]
-    public static async Task<IActionResult> RunAsync(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]
-        HttpRequest req, ILogger log)
+    [Function("Upload")]
+    public static async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req,
+        FunctionContext executionContext)
     {
+        var log = executionContext.GetLogger("Upload");
         log.LogInformation("C# HTTP trigger function processed a request.");
 
         string connection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
         string containerName = Environment.GetEnvironmentVariable("ContainerName");
+
         var blobContainer = new BlobContainerClient(connection, containerName);
 
         var body = await new StreamReader(req.Body).ReadToEndAsync();
@@ -40,15 +34,20 @@ public static class FileUpload
             await blobClient.UploadAsync(ms);
             log.LogInformation($"Uploaded Blob {imageUploadRequest.ImgName}");
             var uri = blobClient.Uri.AbsoluteUri;
-            return new OkObjectResult(uri);
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(uri);
+
+            return  response;
         }
         else
         {
             log.LogInformation($"Blob {imageUploadRequest.ImgName} already exist, Returning URI");
             var uri = blobClient.Uri.AbsoluteUri;
-            return new OkObjectResult(uri);
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(uri);
+
+            return response;
         }
 
-        return new InternalServerErrorResult();
     }
 }
