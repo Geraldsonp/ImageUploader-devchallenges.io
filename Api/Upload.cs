@@ -20,14 +20,14 @@ public static class Upload
         string connection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
         string containerName = Environment.GetEnvironmentVariable("ContainerName");
 
-        var blobContainer = new BlobContainerClient(connection, containerName);
+        BlobContainerClient blobContainer = new BlobContainerClient(connection, containerName);
 
         var body = await new StreamReader(req.Body).ReadToEndAsync();
         var imageUploadRequest = JsonConvert.DeserializeObject<ImageUploadRequest>(body);
 
         var blobClient = blobContainer.GetBlobClient(imageUploadRequest.ImgName);
 
-        using var ms = new MemoryStream(imageUploadRequest.ImageBytes);
+        using MemoryStream ms = new MemoryStream(imageUploadRequest.ImageBytes);
 
         if (!blobClient.Exists())
         {
